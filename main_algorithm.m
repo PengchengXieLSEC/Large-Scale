@@ -23,7 +23,7 @@ K=min(100*n,100000); % total iteration
 
 % Step 0: Initialization Obtain ya, yb, yc
 if verbose
-    disp(["迭代轮数:", k])
+    disp(["Iter:", k])
 end
 d0 = [1; zeros(n-1, 1)];
 ya = x0;
@@ -82,6 +82,14 @@ if (dot(dd1, dd2) ~= 0)
         end
     end
 end
+
+%option for a random d2
+
+%dd2 = null(dd1');
+%dd2 = dd2(:, randi(n-1));
+
+
+
 
 alpha_a = dot(ya - ymin1, dd1);
 alpha_b = dot(yb - ymin1, dd1);
@@ -317,8 +325,13 @@ while true
         end
         %0714-new-added
     else
+        %if norm(s,2)>1e-6
         Delta = gamma2 * Delta;
+        %end
     end
+
+   
+
     
     if flag
         dd1new = (xkp1 - xk) / norm(xkp1 - xk);
@@ -350,6 +363,17 @@ while true
             end
         end
     end
+
+%option for a random d2
+
+%dd2new = null(dd1');
+%dd2new = dd2new(:, randi(n-1));
+
+
+
+
+
+
     dd1old = dd1;
     dd2old = dd2;
     
