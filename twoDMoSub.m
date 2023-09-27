@@ -9,17 +9,16 @@ fwp = @(x)(f(x, 1));
 f = @(x)(f(x,0));
 
 Delta = 1; % Initial trust-region radius
-Delta_low = 1e-3; % Lower bound on trust-region radius
-Delta_upper = 1e3; % Upper bound on trust-region radius
-gamma1 = 2; % Increase factor for trust-region radius
-gamma2 = 1/5; % Decrease factor for trust-region radius
+Delta_low = 1e-4; % Lower bound on trust-region radius
+Delta_upper = 1e4; % Upper bound on trust-region radius
+gamma1 = 10; % Increase factor for trust-region radius
+gamma2 = 1/10; % Decrease factor for trust-region radius
 eta = 1/5; % Threshold for very successful step
 eta0 = 1/10; % Threshold for successful step
 
 k = 1; % iteration
 
 K=min(100*n,100000); % total iteration
-% xs = zeros(n, K);
 
 % Step 0: Initialization Obtain ya, yb, yc
 if verbose
@@ -52,9 +51,6 @@ else
     fymin1=fyc;
 end
     
-
-
-% xs(:, k) = ymin1;
 xk = ymin1;
 if verbose
     disp(["xk", xk'])
@@ -68,12 +64,11 @@ if norm(ymin1 - ymax1)==0
 end
 
 dd1 = (ymin1 - ymax1) / norm(ymin1 - ymax1); 
+
+%option for a random d2
 %dd2 = zeros(n, 1);
 %t = mod(k, n)+1;
 %dd2(t) = 1;
-
-%option for a random d2
-
 %if (dot(dd1, dd2) ~= 0)
 %    for index = 1:n
 %        dd2 = zeros(n, 1);
@@ -90,14 +85,9 @@ dd1 = (ymin1 - ymax1) / norm(ymin1 - ymax1);
 dd2 = null(dd1');
 dd2 = dd2(:, randi(n-1));
 
-
-
-
 alpha_a = dot(ya - ymin1, dd1);
 alpha_b = dot(yb - ymin1, dd1);
 alpha_c = dot(yc - ymin1, dd1);
-
-
 
 A = [alpha_a, alpha_a^2; alpha_b, alpha_b^2; alpha_c, alpha_c^2;];
 b = [fya - fymin1; fyb - fymin1; fyc - fymin1];
@@ -107,10 +97,7 @@ b_value = tempRes(2);
 
 % Loop start
 while true
-    % Step 1: Construct the interpolation set
-    
-    
-    
+    % Construct the interpolation set
     
     if k>1 && norm(xk-y1)==0
         fxk=fy1;
@@ -132,20 +119,13 @@ while true
         fxk=fwp(xk);
     end
     
-   
-    
-    
     y1 = xk + Delta * dd2;
-    
-    
     
     if k>1 && norm(y1-xkm1)==0
         fy1=fxkm1;
     else
         fy1=fwp(y1);
     end
-    
-    
     
     if fy1 <= fxk
         y2 = xk + 2 * Delta * dd2;
@@ -160,23 +140,17 @@ while true
     fy2=fwp(y2);
     end
     
-    
-    
-    
     Y2 = [y1, y2];
     Yvalues2 = [fy1, fy2];
     [~, min_index] = min(Yvalues2);
     ymin2 = Y2(:, min_index(1));
     y3 = ymin2 + Delta * dd1;
-
     
     if k>1 && norm(y3-xkm1)==0
         fy3=fxkm1;
     else
     fy3=fwp(y3);
     end
-    
-    
     
     flag = true;
     while(true)
@@ -208,13 +182,10 @@ while true
         d_value = tempRes(2);
         e_value = tempRes(3);
 
-        
-        % Step 3: Trust-region trial step
+        % Trust-region trial step
         g = [a_value; c_value];
         H = [2 * b_value, e_value; e_value, 2 * d_value];
 
-        
-        
         cd 'trust_sub'
         [s, ~] = trust_sub(g, H, Delta);
         xk_plus = xk + [dd1, dd2] * s;
@@ -239,7 +210,9 @@ while true
             break;
         else
             
-            if (k > 1) && (norm(xk-xkm1)~=0)
+            if (k > 1) 
+
+           
                 
                 temp_4_again=xkm1 - xk;
                 temp_5_again=xk_plus - xk;
@@ -249,6 +222,8 @@ while true
                 
                 alpha5_again = dot(temp_5_again, dd1);
                 beta5_again = dot(temp_5_again, dd2);
+
+                  if (norm(xk-xkm1)~=0)
                 
                 A = [alpha1, alpha1 ^ 2, beta1, beta1 ^ 2, alpha1 * beta1;
                     alpha2, alpha2 ^ 2, beta2, beta2 ^ 2, alpha2 * beta2;
@@ -259,6 +234,59 @@ while true
                 
                 b = [fy1 - fxk; fy2 - fxk; fy3 - fxk;
                     fxkm1 - fxk; fxk_plus - fxk];
+
+                else 
+
+
+                        y8_again = xk + sqrt(2) / 2 * Delta * dd2 + sqrt(2) / 2 * Delta * dd1;
+                        %y8_again refers to y4 in the paper
+
+
+                    if (norm(xk_plus-y8)~=0)
+
+                        fy8_again=fwp(y8_again);
+
+                        temp_plus_8_again=y8_again - xk;
+                        alpha8_again = dot(temp_plus_8, dd1);
+                        beta8_again = dot(temp_plus_8, dd2);
+
+
+                        A = [alpha1, alpha1 ^ 2, beta1, beta1 ^ 2, alpha1 * beta1;
+                        alpha2, alpha2 ^ 2, beta2, beta2 ^ 2, alpha2 * beta2;
+                        alpha3, alpha3 ^ 2, beta3, beta3 ^ 2, alpha3 * beta3;
+                        alpha8_again, alpha8_again ^ 2, beta8_again, beta8_again ^ 2, alpha8_again * beta8_again;
+                        alpha5_again, alpha5_again ^ 2, beta5_again, beta5_again ^ 2, alpha5_again * beta5_again];
+               
+                
+                        b = [fy1 - fxk; fy2 - fxk; fy3 - fxk;
+                        fy8_again - fxk; fxk_plus - fxk];
+
+
+                    else
+
+                        y6_again=xk+Delta*dd1;
+                        %y6_again refers to y5 in the paper
+
+                         fy6_again=fwp(y6_again);
+
+                        temp_plus_6_again=y6_again - xk;   
+                        alpha6_again = dot(temp_plus_6_again, dd1);
+                        beta6_again = dot(temp_plus_6_again, dd2);
+
+                        A = [alpha1, alpha1 ^ 2, beta1, beta1 ^ 2, alpha1 * beta1;
+                        alpha2, alpha2 ^ 2, beta2, beta2 ^ 2, alpha2 * beta2;
+                        alpha3, alpha3 ^ 2, beta3, beta3 ^ 2, alpha3 * beta3;
+                        alpha6_again, alpha6_again ^ 2, beta6_again, beta6_again ^ 2, alpha6_again * beta6_again;
+                        alpha5_again, alpha5_again ^ 2, beta5_again, beta5_again ^ 2, alpha5_again * beta5_again];
+               
+                
+                        b = [fy1 - fxk; fy2 - fxk; fy3 - fxk;
+                        fy6_again - fxk; fxk_plus - fxk];
+                        
+                    end
+                end
+
+
                 tempRes = A \ b;
                 a_value_again = tempRes(1);
                 b_value_again = tempRes(2);
@@ -266,7 +294,7 @@ while true
                 d_value_again = tempRes(4);
                 e_value_again = tempRes(5);
     
-                % Step 3: Trust-region trial step
+                % Trust-region trial step (again) for Qmod
                 g_again = [a_value_again; c_value_again];
                 H_again = [2 * b_value_again, e_value_again; e_value_again, 2 * d_value_again];
                 cd 'trust_sub'
@@ -300,8 +328,7 @@ while true
                     flag = false;
                 break
             end
-            
-        
+               
         end
         
        end
@@ -309,7 +336,7 @@ while true
     
     oldDelta = Delta;
     
-    % Step 4: Update the trust-region radius and the subspace
+    % Update the trust-region radius and the subspace
     if (Delta < Delta_low) || (k > K)
         xreturn = xk;
         fval = fxk;
@@ -329,10 +356,7 @@ while true
         Delta = gamma2 * Delta;
         end
     end
-
    
-
-    
     if flag
         dd1new = (xkp1 - xk) / norm(xkp1 - xk);
     else
@@ -368,19 +392,11 @@ while true
 dd2new = null(dd1');
 dd2new = dd2new(:, randi(n-1));
 
-
-
-
-
-
     dd1old = dd1;
     dd2old = dd2;
     
-    
-    
     dd1 = dd1new;
     dd2 = dd2new;
-    
     
     % Perform the interpolation for Q_k^+
     temp_plus_1=y1 - xkp1;
@@ -413,18 +429,20 @@ dd2new = dd2new(:, randi(n-1));
     alpha5 = dot(temp_plus_5, dd1);
     beta5 = dot(temp_plus_5, dd2star);
 
-    y6=xk+oldDelta*dd1old;
-    temp_plus_6=y6 - xkp1;   
-    alpha6 = dot(temp_plus_6, dd1);
-    beta6 = dot(temp_plus_6, dd2star);
-   
+
     y8 = xk + sqrt(2) / 2 * oldDelta * dd2old + sqrt(2) / 2 * oldDelta * dd1old;
     temp_plus_8=y8 - xkp1;
     alpha8 = dot(temp_plus_8, dd1);
     beta8 = dot(temp_plus_8, dd2star);
-    % 0714-new-added
-    
-    
+    %y8 refers to y4 in the paper
+
+    y6=xk+oldDelta*dd1old;
+    temp_plus_6=y6 - xkp1;   
+    alpha6 = dot(temp_plus_6, dd1);
+    beta6 = dot(temp_plus_6, dd2star);
+    %y6 refers to y5 in the paper
+   
+      
     A1 = [alpha1, alpha1 ^ 2, beta1, beta1 ^ 2, alpha1 * beta1];
     A2 = [alpha2, alpha2 ^ 2, beta2, beta2 ^ 2, alpha2 * beta2];
     A3 = [alpha3, alpha3 ^ 2, beta3, beta3 ^ 2, alpha3 * beta3];
@@ -433,59 +451,78 @@ dd2new = dd2new(:, randi(n-1));
     A6 = [alpha6, alpha6 ^ 2, beta6, beta6 ^ 2, alpha6 * beta6];
     A8 = [alpha8, alpha8 ^ 2, beta8, beta8 ^ 2, alpha8 * beta8];
         
-        
-        
     b1 = fy1 - fxkp1;    
     b2 = fy2 - fxkp1;
     b3 = fy3 - fxkp1;
     b4 = fxk - fxkp1;
     b5 = fxtemp - fxkp1;
     
-    
-    
-
-        
     Yvaluesfordrop = [fy1, fy2];    
     [~, min_indexfordrop] = min(Yvaluesfordrop);
    
     if det([A1; A2; A3; A4; A5])~=0
        tempRes = [A1; A2; A3; A4; A5] \ [b1; b2; b3; b4; b5];
     elseif det([A1; A6; A3; A4; A5])~=0 && min_indexfordrop(1) == 1
+
+            if exist('y6_again','var')==1 && (norm(y6-y6_again)==0)
+             fy6=fy6_again;
+            else 
              fy6=fwp(y6);
+            end
+
              b6 = fy6 - fxkp1;
               tempRes = [A1; A6; A3; A4; A5] \ [b1; b6; b3; b4; b5];
     elseif det([A6; A2; A3; A4; A5])~=0 
+             
+            if exist('y6_again','var')==1 && (norm(y6-y6_again)==0)
+             fy6=fy6_again;
+            else 
              fy6=fwp(y6);
+            end
+
              b6 = fy6 - fxkp1;
               tempRes = [A6; A2; A3; A4; A5] \ [b6; b2; b3; b4; b5];
     elseif det([A1; A2; A3; A8; A5])~=0 
-              fy8=fwp(y8);
+              
+            if exist('y8_again','var')==1 && (norm(y8-y8_again)==0)
+             fy8=fy8_again;
+            else 
+             fy8=fwp(y8);
+            end
+
               b8 = fy8 - fxkp1;
             tempRes = [A1; A2; A3; A8; A5] \ [b1; b2; b3; b8; b5];
     else
+             
+            if exist('y6_again','var')==1 && (norm(y6-y6_again)==0)
+             fy6=fy6_again;
+            else 
              fy6=fwp(y6);
+            end
+
              b6 = fy6 - fxkp1;
+             
+            if exist('y8_again','var')==1 && (norm(y8-y8_again)==0)
+             fy8=fy8_again;
+            else 
              fy8=fwp(y8);
+            end
+
              b8 = fy8 - fxkp1;
             tempRes = [A1; A2; A3; A8; A6] \ [b1; b2; b3; b8; b6];
     end
-                
-           
-   
+                   
     a_value = tempRes(1);
     b_value = tempRes(2);
     c_value = tempRes(3);
     d_value = tempRes(4);
     e_value = tempRes(5);
-   
     
     % increase k
      k = k + 1;
      xkm1=xk;
      fxkm1=fxk;
      xk=xkp1;
-     
-     
     
 end 
 
