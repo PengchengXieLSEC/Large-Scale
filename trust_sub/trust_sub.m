@@ -3,8 +3,7 @@
 %Connect: xpc@lsec.cc.ac.cn
 
 function [s, val] = trust_sub(g, H, delta)
-  %func_name可选rosen, sphere, ackley, beale, booth, bukin
-  %   
+
     finfo_float_eps = 2.220446049250313e-16;
     tol = 10e-12;
     tol_seqeq = 10e-8;
@@ -16,16 +15,9 @@ function [s, val] = trust_sub(g, H, delta)
     n = size(g,1);
     coeff = zeros(n, 1);
     
-%     H
-
     % convert H to full matrix if sparse
     T = sparse(H);
     H = full(T);
-%     T
-%     
-%     H
-%     
-%     H' + H
     
     % get the eigen value and vector
     [V, D] = eig(0.5 * (H' + H));
